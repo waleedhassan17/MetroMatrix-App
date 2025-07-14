@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  StyleSheet, ScrollView
+  StyleSheet, ScrollView, Platform
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AdsCarousel from '../components/AdsCarousel';
@@ -9,138 +9,144 @@ import CategoryCard from '../components/CategoryCard';
 import ProductCard from '../components/ProductCard';
 import NavigationBar from '../components/NavigationBar';
 import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const SmartCityHome = () => {
   const [search, setSearch] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('All');
   const navigation = useNavigation();
 
-  const categories = ['Shopping'];
+  const categories = ['Shopping']; // Add more categories as needed
   const filters = ['All', 'Newest', 'Popular'];
   const allProducts = []; // Placeholder
 
   const filteredProducts = allProducts.filter(p =>
     p.category === 'Shopping' &&
-    (selectedFilter === 'All' || p.type === selectedFilter) &&
+    (selectedFilter === 'All' ||
+      (selectedFilter === 'Newest' && p.isNew) ||
+      (selectedFilter === 'Popular' && p.isPopular)) &&
     p.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  const filteredCategories = categories.filter(cat =>
+    cat.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <ScrollView contentContainerStyle={styles.scrollContent} style={{ flex: 1 }}>
 
-        {/* Header Section */}
-        <View style={styles.headerSection}>
-          <Text style={styles.metroText}>MetroMatrix</Text>
+          {/* Header Section */}
+          <View style={styles.headerSection}>
+            <Text style={styles.metroText}>MetroMatrix</Text>
 
-          <Text style={styles.subHeadingText}>
-            Smart City Services at your FingerTips
-          </Text>
+            <Text style={styles.subHeadingText}>
+              Smart City Services at your FingerTips
+            </Text>
 
-          {/* Notification & Profile Row */}
-          <View style={styles.profileNotifRow}>
-             <TouchableOpacity
-              onPress={() => navigation.navigate('Profile')}
-              style={styles.greetingBox}
-            >
-              <Text style={styles.greetingText}>Hey Waleed</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
-              <Icon
-                name="notifications-outline"
-                size={24}
-                color="#FFFFFF"
-              />
-            </TouchableOpacity>
-
-           
-          </View>
-        </View>
-
-        {/* Search */}
-        <View style={styles.searchContainer}>
-          <Icon name="search" size={20} color="#aaa" style={styles.searchIcon} />
-          <TextInput
-            placeholder="Search services/products"
-            placeholderTextColor="#aaa"
-            value={search}
-            onChangeText={setSearch}
-            style={styles.searchBar}
-          />
-        </View>
-
-        {/* Ads Carousel */}
-        <View style={{ marginTop: 20 }}>
-          <AdsCarousel />
-        </View>
-
-        {/* Categories */}
-        <Text style={styles.sectionTitle}>Categories</Text>
-
-        {/* Filters */}
-        <View style={styles.filterRow}>
-          {filters.map((filter, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.filterBtn,
-                selectedFilter === filter && styles.selectedFilterBtn
-              ]}
-              onPress={() => setSelectedFilter(filter)}
-            >
-              <Text
-                style={[
-                  styles.filterText,
-                  selectedFilter === filter && styles.selectedFilterText
-                ]}
+            {/* Notification & Profile Row */}
+            <View style={styles.profileNotifRow}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Profile')}
+                style={styles.greetingBox}
               >
-                {filter}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+                <Text style={styles.greetingText}>Hey Waleed</Text>
+              </TouchableOpacity>
 
-        <ScrollView
-          horizontal
-          style={styles.categoryRow}
-          showsHorizontalScrollIndicator={false}
-        >
-          {categories.map((cat, index) => (
-            <CategoryCard
-              key={index}
-              title={cat}
-              isSelected={true}
-              width={333}
-              height={176}
-              onPress={() => navigation.navigate('CougarSplash')}
+              <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
+                <Icon
+                  name="notifications-outline"
+                  size={24}
+                  color="#FFFFFF"
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Search */}
+          <View style={styles.searchContainer}>
+            <Icon name="search" size={20} color="#aaa" style={styles.searchIcon} />
+            <TextInput
+              placeholder="Search Categories"
+              placeholderTextColor="#aaa"
+              value={search}
+              onChangeText={setSearch}
+              style={styles.searchBar}
             />
-          ))}
-        </ScrollView>
+          </View>
 
-        {/* Product List / Placeholder */}
-        {filteredProducts.length > 0 ? (
-          <FlatList
-            data={filteredProducts}
-            renderItem={({ item }) => <ProductCard product={item} />}
-            keyExtractor={(item, index) => index.toString()}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-          />
-        ) : (
+          {/* Ads Carousel */}
+          <View style={{ marginTop: 20 }}>
+            <AdsCarousel />
+          </View>
+
+          {/* Categories */}
+          <Text style={styles.sectionTitle}>Categories</Text>
+
+          {/* Filters */}
+          <View style={styles.filterRow}>
+            {filters.map((filter, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.filterBtn,
+                  selectedFilter === filter && styles.selectedFilterBtn
+                ]}
+                onPress={() => setSelectedFilter(filter)}
+              >
+                <Text
+                  style={[
+                    styles.filterText,
+                    selectedFilter === filter && styles.selectedFilterText
+                  ]}
+                >
+                  {filter}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Filtered Categories */}
+          {filteredCategories.length === 0 ? (
+            <Text style={styles.placeholderText}>Not Found</Text>
+          ) : (
+            <ScrollView
+              horizontal
+              style={styles.categoryRow}
+              showsHorizontalScrollIndicator={false}
+            >
+              {filteredCategories.map((cat, index) => (
+                <CategoryCard
+                  key={index}
+                  title={cat}
+                  isSelected={true}
+                  width={333}
+                  height={176}
+                  onPress={() => navigation.navigate('CougarSplash')}
+                />
+              ))}
+            </ScrollView>
+          )}
+
+          {/* Optional Product Placeholder */}
           <Text style={styles.placeholderText}>
             Products coming soon in the Shopping category!
           </Text>
-        )}
-      </ScrollView>
+        </ScrollView>
 
-      {/* Bottom Navigation */}
-      <NavigationBar />
-    </View>
+        {/* Bottom Navigation */}
+        <NavigationBar />
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#1C1C1C',
+  },
   container: {
     flex: 1,
     backgroundColor: '#1C1C1C',
@@ -149,8 +155,8 @@ const styles = StyleSheet.create({
     paddingTop: 40,
     paddingHorizontal: 24,
     alignItems: 'center',
+    paddingBottom: 140, // extra space for bottom nav
   },
-
   headerSection: {
     width: '100%',
     marginBottom: 10,
@@ -191,7 +197,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins',
     fontWeight: '500',
   },
-
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -210,7 +215,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontFamily: 'Poppins',
   },
-
   sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -248,7 +252,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontFamily: 'Poppins',
   },
-
   placeholderText: {
     textAlign: 'center',
     marginTop: 20,

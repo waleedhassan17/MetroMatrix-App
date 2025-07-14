@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+// WishlistScreen.js
+import React from 'react';
 import {
   View,
   Text,
@@ -8,37 +9,25 @@ import {
   StyleSheet,
   StatusBar,
   SafeAreaView,
+  Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-
-const initialWishlist = [
-  {
-    id: '1',
-    name: 'Yarn Died Polo',
-    price: 3499,
-    image:
-      'https://www.cougar.com.pk/cdn/shop/files/1_3aff93c9-9929-4665-a48e-5030f8337eec.webp?v=1747290618&width=533',
-  },
-  {
-    id: '2',
-    name: 'Tipped Polo',
-    price: 2499,
-    image:
-      'https://www.cougar.com.pk/cdn/shop/files/3_f3ac3e2a-fe51-4852-84bf-e80bb8f0ad4b.webp?v=1747290555&width=533',
-  },
-];
+import { useSelector, useDispatch } from 'react-redux';
+import { removeFromWishlist } from '../redux/slice/wishlistSlice'; // adjust path
+import { addItemToCart } from '../redux/slice/cartSlice';
 
 const WishlistScreen = () => {
   const navigation = useNavigation();
-  const [wishlist, setWishlist] = useState(initialWishlist);
+  const wishlist = useSelector(state => state.wishlist.items);
+  const dispatch = useDispatch();
 
-  const addToCart = (id) => {
-    alert('Added to Cart');
+  const addtoCart = (item) => {
+    dispatch(addItemToCart(item));
   };
 
-  const removeFromWishlist = (id) => {
-    setWishlist((prevItems) => prevItems.filter((item) => item.id !== id));
+  const handleRemove = (id) => {
+    dispatch(removeFromWishlist(id));
   };
 
   return (
@@ -52,8 +41,6 @@ const WishlistScreen = () => {
         </TouchableOpacity>
 
         <Text style={styles.headerText}>MetroMatrix</Text>
-
-        {/* Placeholder for balancing */}
         <View style={styles.backButton} />
       </View>
 
@@ -63,17 +50,29 @@ const WishlistScreen = () => {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.itemCard}>
-            <Image source={{ uri: item.image }} style={styles.image} />
+          <Image
+              source={typeof item.image === 'string' ? { uri: item.image } : item.image}
+              style={styles.image}
+              resizeMode="cover"
+          />
+
             <View style={styles.info}>
               <Text style={styles.name}>{item.name}</Text>
               <Text style={styles.price}>Rs. {item.price.toLocaleString()}</Text>
               <View style={styles.actions}>
-                <TouchableOpacity style={styles.addBtn} onPress={() => addToCart(item.id)}>
+                <Pressable
+                    onPress={() => addtoCart(item)}
+                    style={({ pressed }) => [
+                    styles.addBtn,
+                    pressed && { backgroundColor: '#007ACC' }, // Darker shade on press
+                    ]}
+                >
                   <Text style={styles.addText}>Add to Cart</Text>
-                </TouchableOpacity>
+                </Pressable>
+
               </View>
             </View>
-            <TouchableOpacity onPress={() => removeFromWishlist(item.id)}>
+            <TouchableOpacity onPress={() => handleRemove(item.id)}>
               <Ionicons name="trash-outline" size={24} color="#FF4D4D" />
             </TouchableOpacity>
           </View>
@@ -85,6 +84,8 @@ const WishlistScreen = () => {
 };
 
 export default WishlistScreen;
+
+
 
 const styles = StyleSheet.create({
   container: {

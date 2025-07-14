@@ -1,0 +1,208 @@
+import React from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  Platform,
+} from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
+
+import ProductCard from '../components/ui/ProductCard';
+import NavigationBar from '../components/NavigationBar';
+
+const baseProducts = [
+  {
+    id: 'women1',
+    name: 'Women Sneakers',
+    price: '59.99',
+    badge: 'New',
+  },
+  {
+    id: 'women2',
+    name: 'Sandals',
+    price: '39.99',
+    badge: 'Sale',
+  },
+  {
+    id: 'women3',
+    name: 'Running Shoes',
+    price: '49.99',
+  },
+  {
+    id: 'women4',
+    name: 'Canvas Shoes',
+    price: '69.99',
+    badge: 'New',
+  },
+];
+
+const productImages = {
+  women1: require('../assets/women.jpg'),
+  women2: require('../assets/women.jpg'),
+  women3: require('../assets/women.jpg'),
+  women4: require('../assets/women.jpg'),
+};
+
+const products = Array.from({ length: 30 }, (_, index) => {
+  const baseItem = baseProducts[index % baseProducts.length];
+  return {
+    id: `${baseItem.id}_${index + 1}`,
+    name: `${baseItem.name} #${index + 1}`,
+    price: baseItem.price,
+    badge: baseItem.badge,
+    imageId: baseItem.id,
+  };
+});
+
+export default function WomenCategoryScreen() {
+  const navigation = useNavigation();
+
+  const renderCard = React.useCallback(({ item }) => {
+    return <ProductCard item={{ ...item, image: productImages[item.imageId] }} 
+      onPress={() =>
+        navigation.navigate('ProductDetail', {
+          product: item, // Only serializable data passed
+        })
+      }
+    />;
+  }, []);
+
+  const renderHeader = () => (
+    <>
+      <View style={styles.headerRow}>
+        <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Icon name="arrow-back" size={24} color="#fff" />
+        </Pressable>
+        <View style={styles.centerTitleWrapper}>
+          <Text style={styles.title}>Women</Text>
+        </View>
+      </View>
+      <Text style={styles.subtitle}>Explore Top Picks</Text>
+      <View style={styles.filterRow}>
+        <Pressable style={styles.filterPill}>
+          <Text style={styles.filterText}>Sorted by</Text>
+        </Pressable>
+        <Pressable style={styles.filterPill}>
+          <Text style={styles.filterText}>Filter</Text>
+        </Pressable>
+      </View>
+    </>
+  );
+
+  const renderFooter = () => (
+    <View style={styles.footer}>
+      <Text style={styles.subtitle}>Featured for You</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuredScroll}>
+        {baseProducts.map((item, idx) => (
+          <View key={idx} style={styles.featuredCardWrapper}>
+            <ProductCard item={{ ...item, image: productImages[item.id] }}  
+      onPress={() =>
+        navigation.navigate('ProductDetail', {
+          product: item, // Only serializable data passed
+        })
+      }
+            />
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#121212" />
+      <FlatList
+        data={products}
+        renderItem={renderCard}
+        keyExtractor={(item) => item.id.toString()}
+        numColumns={2}
+        columnWrapperStyle={styles.row}
+        ListHeaderComponent={renderHeader}
+        ListFooterComponent={renderFooter}
+        showsVerticalScrollIndicator={false}
+        removeClippedSubviews
+        initialNumToRender={6}
+      />
+      <NavigationBar />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#121212',
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 8,
+    position: 'relative',
+    height: 40,
+  },
+  backButton: {
+    zIndex: 2,
+  },
+  centerTitleWrapper: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+    fontFamily: 'Poppins',
+  },
+  subtitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#ccc',
+    marginTop: 8,
+    marginBottom: 16,
+    fontFamily: 'Poppins',
+  },
+  filterRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  filterPill: {
+    backgroundColor: '#1E1E1E',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 22,
+    borderColor: '#2F2F2F',
+    borderWidth: 1,
+  },
+  filterText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#FFFFFF',
+    fontFamily: 'Poppins',
+  },
+  row: {
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  footer: {
+    marginTop: 32,
+    paddingBottom: 60,
+  },
+  featuredScroll: {
+    paddingHorizontal: 4,
+  },
+  featuredCardWrapper: {
+    marginRight: 12,
+  },
+});

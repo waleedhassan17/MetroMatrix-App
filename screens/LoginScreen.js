@@ -5,6 +5,8 @@ import CustomTextInput from '../components/CustomTextInput';
 import { useNavigation } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginUser, clearError } from '../redux/slice/userSlice';
+import NetInfo from '@react-native-community/netinfo';
+
 
 const LoginScreen = () => {
   const navigation = useNavigation();
@@ -21,16 +23,26 @@ const LoginScreen = () => {
     }
   }, [currentUser]);
 
-  const handleLogin = () => {
-    dispatch(clearError());
+const handleLogin = () => {
+  dispatch(clearError());
 
-    if (!Input || !Password) {
-      Alert.alert('Validation Error', 'Please enter all fields');
+  if (!Input || !Password) {
+    alert('Validation Error', 'Please enter all fields');
+    return;
+  }
+
+  NetInfo.fetch().then(state => {
+    if (!state.isConnected || !state.isInternetReachable) {
+      alert('No Internet', 'Please check your internet connection and try again.');
       return;
     }
 
     dispatch(loginUser({ input: Input, password: Password }));
-  };
+  });
+};
+
+
+  
 
   return (
     <View style={styles.container}>

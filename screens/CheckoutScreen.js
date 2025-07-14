@@ -10,6 +10,11 @@ import {
 import CustomTextInput from '../components/CustomTextInput';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { db } from '../firebase/firebaseConfig'; // adjust the path as needed
+import { collection, addDoc, Timestamp, serverTimestamp } from 'firebase/firestore';
+import { auth } from '../firebase/firebaseConfig';
+import { Alert } from 'react-native';
+
 
 const DELIVERY_CHARGE = 200;
 const EXTRA_BILLING_CHARGE = 100;
@@ -17,6 +22,8 @@ const EXTRA_BILLING_CHARGE = 100;
 const CheckoutScreen = ({ route }) => {
   const navigation = useNavigation();
   const cartItems = route?.params?.cartItems ?? [];
+  const totalCart_Amount = route?.params?.totalAmount ?? 0;
+  const totalCart = parseFloat(totalCart_Amount.toFixed(2));
 
   // Shipping info states
   const [email, setEmail] = useState('');
@@ -39,16 +46,89 @@ const CheckoutScreen = ({ route }) => {
   const [paymentMethod, setPaymentMethod] = useState('Postpaid');
   const [isBillingSame, setIsBillingSame] = useState(true);
 
-  const totalCart = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
+  
 
   const calculateTotal = () => {
     let delivery = paymentMethod === 'Postpaid' ? DELIVERY_CHARGE : 0;
     let extraBilling = !isBillingSame ? EXTRA_BILLING_CHARGE : 0;
-    return totalCart + delivery + extraBilling;
+    let total = totalCart + delivery + extraBilling;
+    return parseFloat(total.toFixed(2));
   };
+
+  
+const handlePlaceOrder = async () => {
+  if (!email || !phone || !country || !province || !city || !postalAddress || !postalCode) {
+    alert('Please fill in all Shipping Fields');
+    return;
+  }
+
+  if (
+    !isBillingSame &&
+    (!billingEmail || !billingPhone || !billingCountry || !billingProvince || !billingCity || !billingPostalAddress || !billingPostalCode)
+  ) {
+    alert('Please fill in all Billing Fields');
+    return;
+  }
+
+  const orderData = {
+    userId: auth.currentUser?.uid,
+    shippingInfo: {
+      email,
+      phone,
+      country,
+      province,
+      city,
+      address: postalAddress,
+      postalCode,
+    },
+    billingInfo: isBillingSame
+      ? {
+          email,
+          phone,
+          country,
+          province,
+          city,
+          address: postalAddress,
+          postalCode,
+        }
+      : {
+          email: billingEmail,
+          phone: billingPhone,
+          country: billingCountry,
+          province: billingProvince,
+          city: billingCity,
+          address: billingPostalAddress,
+          postalCode: billingPostalCode,
+        },
+    cartItems: cartItems.map((item) => ({
+      id: item.id,
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price,
+    })),
+    paymentMethod,
+    totalAmount: calculateTotal(),
+    createdAt: Timestamp.now(),
+  };
+
+  try {
+    // 🔹 Save order
+    await addDoc(collection(db, 'orders'), orderData);
+
+    // 🔸 Add notification
+    await addDoc(collection(db, 'notifications'), {
+      message: '🛒 Your order has been placed successfully!',
+      timestamp: serverTimestamp(),
+    });
+
+    alert('Order placed successfully!');
+    navigation.navigate('SmartCityHome');
+  } catch (error) {
+    console.log('Error placing Order:', error);
+    alert('Failed to place order. Please try again later.');
+  }
+};
+  
 
   return (
     <ScrollView style={styles.container}>
@@ -70,7 +150,7 @@ const CheckoutScreen = ({ route }) => {
             <Text style={styles.itemText}>
               {item.name} × {item.quantity}
             </Text>
-            <Text style={styles.itemText}>${item.price * item.quantity}</Text>
+            <Text style={styles.itemText}>{item.price * item.quantity}</Text>
           </View>
         )}
         scrollEnabled={false}
@@ -195,30 +275,30 @@ const CheckoutScreen = ({ route }) => {
       <Text style={styles.sectionTitle}>Summary</Text>
       <View style={styles.summaryRow}>
         <Text style={styles.summaryText}>Cart Total:</Text>
-        <Text style={styles.summaryText}>${totalCart}</Text>
+        <Text style={styles.summaryText}>{totalCart}</Text>
       </View>
 
       {paymentMethod === 'Postpaid' && (
         <View style={styles.summaryRow}>
           <Text style={styles.summaryText}>Delivery Charges:</Text>
-          <Text style={styles.summaryText}>${DELIVERY_CHARGE}</Text>
+          <Text style={styles.summaryText}>{DELIVERY_CHARGE}</Text>
         </View>
       )}
 
       {!isBillingSame && (
         <View style={styles.summaryRow}>
           <Text style={styles.summaryText}>Extra Billing Charges:</Text>
-          <Text style={styles.summaryText}>${EXTRA_BILLING_CHARGE}</Text>
+          <Text style={styles.summaryText}>{EXTRA_BILLING_CHARGE}</Text>
         </View>
       )}
 
       <View style={styles.summaryRow}>
         <Text style={styles.totalText}>Total Payable:</Text>
-        <Text style={styles.totalText}>${calculateTotal()}</Text>
+        <Text style={styles.totalText}>{calculateTotal()}</Text>
       </View>
 
       {/* Place Order */}
-      <TouchableOpacity style={styles.orderBtn}>
+      <TouchableOpacity style={styles.orderBtn} onPress={handlePlaceOrder}>
         <Text style={styles.orderText}>Place Order</Text>
       </TouchableOpacity>
     </ScrollView>

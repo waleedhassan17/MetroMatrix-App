@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,20 +6,37 @@ import {
   FlatList,
   TouchableOpacity,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-
-const notifications = [
-  { id: '1', message: '🔥 New offers on Shopping!' },
-  { id: '2', message: '🎉 Welcome to SmartCity, Waleed!' },
-  { id: '3', message: '🛒 Your cart is empty — explore now!' },
-  { id: '4', message: '📦 Order #2035 has been delivered.' },
-  { id: '5', message: '⭐ Rate your recent experience!' },
-];
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { db } from '../firebase/firebaseConfig';
 
 const NotificationsScreen = () => {
   const navigation = useNavigation();
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchNotifications = async () => {
+    try {
+      const q = query(collection(db, 'notifications'), orderBy('timestamp', 'desc'));
+      const querySnapshot = await getDocs(q);
+      const fetched = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setNotifications(fetched);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -33,22 +50,32 @@ const NotificationsScreen = () => {
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
-        <View style={styles.backButton} /> {/* Placeholder */}
+        <View style={styles.backButton} /> {/* Spacer */}
       </View>
 
-      <FlatList
-        data={notifications}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: 20 }}
-        renderItem={({ item }) => (
-          <View style={styles.notificationCard}>
-            <Text style={styles.message}>{item.message}</Text>
-          </View>
-        )}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>No notifications yet.</Text>
-        }
-      />
+      {loading ? (
+        <ActivityIndicator size="large" color="#fff" style={{ marginTop: 20 }} />
+      ) : (
+        <FlatList
+          data={notifications}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingBottom: 20 }}
+          renderItem={({ item }) => (
+            <View style={styles.notificationCard}>
+              <View>
+                <Text style={styles.message}>{item.message}</Text>
+                <Text style={styles.time}>
+                {item.timestamp?.toDate().toLocaleString() || ''}
+                </Text>
+                </View>
+
+            </View>
+          )}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>No notifications yet.</Text>
+          }
+        />
+      )}
     </View>
   );
 };
@@ -75,6 +102,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  time: {
+  fontSize: 12,
+  color: '#AAAAAA',
+  marginTop: 4,
+  fontFamily: 'Poppins',
+},
   headerTitle: {
     flex: 1,
     fontSize: 22,

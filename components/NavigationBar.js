@@ -26,12 +26,17 @@ const NavItem = ({ icon, label, onPress }) => (
 
 const styles = StyleSheet.create({
   navbar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     justifyContent: 'space-around',
     backgroundColor: '#fff',
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderColor: '#ccc'
+    borderColor: '#ccc',
+    zIndex: 100, // Ensure it's on top
   },
   navItem: {
     alignItems: 'center'

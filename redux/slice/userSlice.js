@@ -11,37 +11,66 @@ import {
   reauthenticateWithCredential
 } from 'firebase/auth';
 import { setDoc, doc } from 'firebase/firestore';
+import { Alert } from 'react-native';
+import { isOffline } from '../../utils/checkNetwork';
+import { useEffect } from 'react';
 
-// Login thunk
+
 export const loginUser = createAsyncThunk(
   'user/loginUser',
   async ({ input, password }, { rejectWithValue }) => {
     try {
+      if (await isOffline()) {
+        Alert.alert('You are offline', 'Please check your internet connection.');
+        return rejectWithValue('Offline');
+      }
+
       const userCredential = await signInWithEmailAndPassword(auth, input, password);
-      return userCredential.user;
+      const user = userCredential.user;
+
+      return {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        emailVerified: user.emailVerified,
+      };
     } catch (error) {
+      if (error.code === 'auth/network-request-failed') {
+        Alert.alert('You are offline', 'Please check your internet connection.');
+      }
       return rejectWithValue(error.message);
     }
   }
 );
 
-// Register thunk
+
 export const registerUser = createAsyncThunk(
   'user/registerUser',
   async ({ name, phone, email, password }, { rejectWithValue }) => {
     try {
+      if (await isOffline()) {
+        Alert.alert('You are offline', 'Please check your internet connection.');
+        return rejectWithValue('You are offline. Please check your internet connection');
+      }
+
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-      await updateProfile(userCredential.user, { displayName: name });
+      await updateProfile(user, { displayName: name });
 
-      await setDoc(doc(db, 'users', userCredential.user.uid), {
+      await setDoc(doc(db, 'users', user.uid), {
         name,
         phone,
         email,
         createdAt: new Date(),
       });
 
-      return userCredential.user;
+      return {
+        uid: user.uid,
+        email: user.email,
+        displayName: name,
+        emailVerified: user.emailVerified,
+      };
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -53,6 +82,12 @@ export const resetPassword = createAsyncThunk(
   'user/resetPassword',
   async ({ email }, { rejectWithValue }) => {
     try {
+       if (await isOffline()) {
+        Alert.alert('You are offline', 'Please check your internet connection.');
+        await new Promise(res => setTimeout(res, 500));
+        return rejectWithValue('Offline');
+      }
+
       await sendPasswordResetEmail(auth, email);
       return 'Password reset email sent!';
     } catch (error) {
@@ -66,6 +101,13 @@ export const changePassword = createAsyncThunk(
   'user/changePassword',
   async ({ currentPassword, newPassword }, { rejectWithValue }) => {
     try {
+
+
+       if (await isOffline()) {
+        Alert.alert('You are offline', 'Please check your internet connection.');
+        return rejectWithValue('Offline');
+      }
+
       const user = auth.currentUser;
 
       if (!user || !user.email) {
@@ -86,6 +128,12 @@ export const changePassword = createAsyncThunk(
 
 // Logout thunk
 export const logoutUser = createAsyncThunk('user/logoutUser', async () => {
+
+   if (await isOffline()) {
+        Alert.alert('You are offline', 'Please check your internet connection.');
+        return rejectWithValue('Offline');
+      }
+
   await signOut(auth);
 });
 
